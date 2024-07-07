@@ -4,46 +4,61 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
-function getBooksList(){
-    let booksList = new Promise((resolve, reject) =>{
-        resolve(books);
-    })
-    return booksList;
-}
+
 public_users.post("/register", (req,res) => {
     const username = req.body.username;
     const password = req.body.password;
     if( username && password){
-        if(!isValid(username)){
+        if(isValid(username)){
             users.push({"username":username,"password":password});
-            return res.status(300).json({message: `User with username ${username} is registered.`});
+            return res.status(200).json({message: `User with username ${username} is registered.`});
         }else{
-            return res.status(400).json({message: `User with username ${username} already exists.`});
+            return res.status(404).json({message: `User with username ${username} already exists.`});
         }
     }else if(!username){
         return res.status(404).json({message: "Please provide username!"});
     }else if(!password){
         return res.status(404).json({message: "Please provide password!"});
     }
-  return res.status(300).json({message: "Yet to be implemented"});
+    return res.status(300).json({message: "Yet to be implemented"});
 });
 
 // Get the book list available in the shop
+function getBooksList(){
+    let booksList = new Promise((resolve, reject) =>{
+        resolve(books);
+    })
+    return booksList;
+}
 public_users.get('/',function (req, res) {
-  if(books){
-    return res.send(JSON.stringify(books));
-  }else{
-      return res.status(300).json({message: "Yet to be implemented"});
-  }
+    getBooksList()
+    .then((allBooks) => res.send(JSON.stringify(allBooks)));
+    // if(books){
+    //     return res.send(JSON.stringify(books));
+    // }else{
+    //     return res.status(300).json({message: "Yet to be implemented"});
+    // }
 });
 
 // Get book details based on ISBN
+function getBooksonIsbn(isbn){
+    let booksList = new Promise((resolve, reject) =>{
+        if(books[isbn]){
+            resolve(books[isbn]);
+        }else{
+            reject({status: 404,
+            message: `Book with ISBN ${isbn} is not found!`});
+        }
+    })
+    return booksList;
+}
 public_users.get('/isbn/:isbn',function (req, res) {
   const isbn = parseInt(req.params.isbn);
-  if(books[isbn]){
-    return res.send(books[isbn]);
-  }
-  return res.status(404).json({message: `Book with ISBN ${isbn} is not found.`});
+  getBooksonIsbn(isbn)
+  .then(
+      result => res.send(result),
+      error => res.status(error.status).json({message: error.message})
+  );
  });
   
 // Get book details based on author
